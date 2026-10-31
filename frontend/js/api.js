@@ -1,7 +1,7 @@
 /* Thin wrapper around fetch. Every page talks to the backend through this. */
 const Api = (() => {
-  // Use Railway backend URL in production, localhost in development
-  const API_BASE = process.env.RAILWAY_BACKEND_URL || '';
+  // Use Render backend URL in production, localhost in development
+  const API_BASE = process.env.RENDER_BACKEND_URL || '';
   
   async function request(path, options = {}) {
     const url = API_BASE ? `${API_BASE}/api${path}` : `/api${path}`;

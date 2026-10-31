@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: kora-eats-backend
+    env: python
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kora-eats-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      - key: RUN_MIGRATIONS
+        value: true
+      - key: CORS_ORIGINS
+        value: https://your-vercel-app.vercel.app
+    healthCheckPath: /api/health
+
+databases:
+  - name: kora-eats-db
+    databaseName: kora_eats
+    user: kora_eats_user
