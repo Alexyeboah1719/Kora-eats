@@ -1,9 +1,13 @@
 /* Thin wrapper around fetch. Every page talks to the backend through this. */
 const Api = (() => {
+  // Use Railway backend URL in production, localhost in development
+  const API_BASE = process.env.RAILWAY_BACKEND_URL || '';
+  
   async function request(path, options = {}) {
-    const res = await fetch(`/api${path}`, {
+    const url = API_BASE ? `${API_BASE}/api${path}` : `/api${path}`;
+    const res = await fetch(url, {
       headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
+      credentials: API_BASE ? 'include' : 'same-origin',
       ...options,
     });
     let data = null;
