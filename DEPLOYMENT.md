@@ -3,14 +3,14 @@
 This guide takes you from "works on my laptop" to a live site. Read it top to bottom once before you start.
 
 ## 1. What you need
-| Thing | Why | Where |
-|---|---|---|
-| A domain name | https is required (browsers only allow camera, location and install-as-app on https) | any registrar |
-| A server or app host | runs the Docker image | a VPS (Hetzner, DigitalOcean), or Render / Railway / Fly.io |
-| PostgreSQL 14+ | the database | managed: Neon, Supabase, Render Postgres (or the one in `docker-compose.yml`) |
-| Paystack account (Ghana) | real payments | paystack.com, start with TEST keys |
-| Resend account + verified domain | emails (order receipts, OTP codes) | resend.com |
-| A persistent disk | uploaded photos live on disk | the host's "volume" feature |
+|| Thing | Why | Where |
+||---|---|---|
+|| A domain name | https is required (browsers only allow camera, location and install-as-app on https) | any registrar |
+|| A server or app host | runs the Docker image | a VPS (Hetzner, DigitalOcean), or Render / Fly.io |
+|| PostgreSQL 14+ | the database | managed: Neon, Supabase, Render Postgres (or the one in `docker-compose.yml`) |
+|| Paystack account (Ghana) | real payments | paystack.com, start with TEST keys |
+|| Resend account + verified domain | emails (order receipts, OTP codes) | resend.com |
+|| A persistent disk | uploaded photos live on disk | the host's "volume" feature |
 
 ## 2. Configure
 Copy `backend/.env.production.example` and fill every blank. The important ones:
@@ -29,7 +29,7 @@ docker compose up --build -d
 ```
 Put Caddy or nginx in front for https (Caddy: `your-domain.com { reverse_proxy localhost:8000 }` gets a certificate automatically).
 
-**Option B: a managed host (Render, Railway...)**: point it at this repo's `Dockerfile`, add the environment variables from step 2, attach a persistent disk mounted at `/data`, and set the health check path to `/api/health`. The container runs the database migrations on every start (`alembic upgrade head`), so deploying a new version updates the database automatically.
+**Option B: a managed host (Render, Fly.io...)**: point it at this repo's `Dockerfile`, add the environment variables from step 2, attach a persistent disk mounted at `/data`, and set the health check path to `/api/health`. The container runs the database migrations on every start (`alembic upgrade head`), so deploying a new version updates the database automatically.
 
 ## 4. First-time setup: create your real admin account
 There is **no "sign up as admin" on the website, by design**: anyone who tries to register with an admin role is simply made a normal customer.
@@ -47,7 +47,7 @@ The password must be **at least 12 characters** with a letter and a number. A sh
 
 **Where to run it** (the app must already be deployed once, so the database tables exist; the start script does that automatically):
 - **Docker on a VPS:** `docker compose exec app python -m scripts.create_admin admin@yourdomain.com "Your Full Name"`
-- **Render / Railway / Fly.io:** open the service's **Shell** (Render: the Shell tab; Railway: `railway shell`; Fly: `fly ssh console`) and run the same
+- **Render / Fly.io:** open the service's **Shell** (Render: the Shell tab; Fly: `fly ssh console`) and run the same
   `python -m scripts.create_admin ...` inside it. The environment variables (including `DATABASE_URL`) are already there.
 - **From your own laptop, pointed at the production database:** in the `backend/` folder, in a terminal you will close afterwards:
   `export DATABASE_URL="postgresql+psycopg://...your Neon/production URL...?sslmode=require"` then run the command, then close the terminal.
@@ -58,8 +58,8 @@ The password must be **at least 12 characters** with a letter and a number. A sh
 **Good practice**
 - Use a dedicated address such as `admin@yourdomain.com`, not your personal one, and one with email you can actually receive.
 - Create a **second admin** for a trusted colleague so you are never locked out. Keep the number of admins small.
-- **Lost the password?** Run the same command again with the same email: it sets a new password (and makes sure the account is an admin).
-- **Check there are no demo accounts**, which must never exist in production (`seed_dev_data` refuses to run there, but verify):
+- Lost the password? Run the same command again with the same email: it sets a new password (and makes sure the account is an admin).
+- Check there are no demo accounts, which must never exist in production (`seed_dev_data` refuses to run there, but verify):
   `SELECT email FROM users WHERE email LIKE '%@demo.kora';` should return no rows. Also confirm the admin list:
   `SELECT email FROM users WHERE role = 'ADMIN';` should show only people you know.
 - There is **no two-factor login yet**. Until it is added, the protections are the long password, HTTPS only, login rate-limiting (10 attempts per
