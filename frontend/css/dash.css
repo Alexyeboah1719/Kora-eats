@@ -1,0 +1,23 @@
+/* Dashboards (vendor / rider / admin) */
+body.dash-body { background: var(--paper); }
+.dash { display: grid; grid-template-columns: 1fr; min-height: 100vh; }
+@media (min-width: 992px) { .dash { grid-template-columns: 240px 1fr; } }
+.dash-side { background: var(--ink); color: #fff; padding: .75rem; }
+@media (min-width: 992px) { .dash-side { padding: 1.25rem 1rem; position: sticky; top: 0; height: 100vh; overflow-y: auto; } }
+.dash-side .brand { color: #fff; display: block; margin-bottom: .5rem; font-size: 1.2rem; text-decoration: none; }
+.dash-side .who { color: #b9c9c0; font-size: .8rem; margin-bottom: .75rem; }
+.dash-nav { display: flex; gap: .25rem; overflow-x: auto; scrollbar-width: none; }
+@media (min-width: 992px) { .dash-nav { flex-direction: column; overflow: visible; } }
+.dash-nav a { color: #cfdcd4; text-decoration: none; padding: .5rem .75rem; border-radius: 8px; white-space: nowrap; font-weight: 500; display: flex; gap: .6rem; align-items: center; }
+.dash-nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.dash-nav a.active { background: var(--gold); color: var(--ink); font-weight: 700; }
+.dash-main { padding: 1rem; min-width: 0; }
+@media (min-width: 992px) { .dash-main { padding: 1.75rem 2rem; } }
+.stat-grid { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); margin-bottom: 1.25rem; }
+.stat { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: .9rem 1rem; }
+.stat .n { font-family: "Bricolage Grotesque", sans-serif; font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+.stat .l { color: var(--ink-soft); font-size: .8rem; }
+.table-wrap { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+.table-wrap table { margin: 0; }
+.table-wrap th { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-soft); white-space: nowrap; }
+.chart-box { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; }

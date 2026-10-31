@@ -1,0 +1,34 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: foodapp, POSTGRES_PASSWORD: foodapp_dev_pw, POSTGRES_DB: foodapp_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U foodapp" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://foodapp:foodapp_dev_pw@localhost:5432/foodapp_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip, cache-dependency-path: backend/requirements.txt }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: pip install -r backend/requirements.txt ruff
+      - name: Lint (real bugs only)
+        run: cd backend && ruff check .
+      - name: Migrations apply cleanly and match the models
+        run: cd backend && alembic upgrade head && alembic check
+      - name: JavaScript syntax
+        run: for f in frontend/js/*.js frontend/sw.js; do node --check "$f"; done
+      - name: Tests
+        run: cd backend && pytest -q
+      - name: Frontend smoke test (every page in jsdom against a live server)
+        run: |
+          cd backend && python -m scripts.seed_dev_data --demo-users
+          (API_RATE_LIMIT_PER_MINUTE=100000 uvicorn app.main:app --port 8000 &) ; sleep 6
+          cd ../frontend-tests && npm install --silent && npm run smoke

@@ -1,0 +1,7 @@
+{
+  "name": "kora-eats-frontend-smoke",
+  "private": true,
+  "description": "Loads every page in jsdom against a running KORA EATS server and fails on any JavaScript error.",
+  "scripts": { "smoke": "node smoke.js" },
+  "devDependencies": { "jsdom": "^24.1.0" }
+}
