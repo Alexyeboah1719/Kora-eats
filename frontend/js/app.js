@@ -148,26 +148,20 @@ const App = (() => {
     });
   }
 
-  // ---------------------------------------------------------------- mobile quick bar (cart + ongoing orders)
+  // ---------------------------------------------------------------- nav count badges (cart items + ongoing orders)
   const ORDER_DONE = new Set(["DELIVERED", "COLLECTED", "RETURNED_TO_VENDOR", "CANCELLED", "REFUNDED"]);
-  async function refreshQuickBar() {
-    const cn = document.getElementById("qb-cart-n"), on = document.getElementById("qb-orders-n");
-    if (!cn && !on) return;
+  const setCount = (id, n) => { const el = document.getElementById(id); if (el) { el.textContent = n; el.classList.toggle("d-none", !n); } };
+  async function refreshNavCounts() {
+    if (!state.user) return;
     const [cart, orders] = await Promise.all([api("/cart"), api("/orders")]);
-    if (cn) { const n = cart.ok ? cart.data.item_count : 0; cn.textContent = n; cn.classList.toggle("d-none", !n); }
-    if (on) { const n = orders.ok ? orders.data.filter((o) => !ORDER_DONE.has(o.status)).length : 0; on.textContent = n; on.classList.toggle("d-none", !n); }
+    const cartN = cart.ok ? cart.data.item_count : 0;
+    setCount("cart-badge", cartN); setCount("nav-cart-badge", cartN);
+    setCount("nav-orders-badge", orders.ok ? orders.data.filter((o) => !ORDER_DONE.has(o.status)).length : 0);
   }
-  function mountQuickBar(nav) {
-    const qb = document.createElement("div");
-    qb.className = "quick-bar";
-    qb.innerHTML = `<a href="/cart.html"><i class="bi bi-bag"></i>Cart <span class="qb-n d-none" id="qb-cart-n">0</span></a>` +
-                   `<a href="/orders.html"><i class="bi bi-receipt"></i>Orders <span class="qb-n d-none" id="qb-orders-n">0</span></a>`;
-    qb.style.bottom = (nav.offsetHeight || 64) + "px";   // sit exactly on top of the bottom nav (incl. safe-area padding); 64px fallback if layout isn't measurable
-    document.body.append(qb);
-    document.body.classList.add("has-quick-bar");   // lets CSS reserve space and move floating widgets
-    refreshQuickBar();
-    setInterval(refreshQuickBar, 30000);
-    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshQuickBar(); });
+  function watchNavCounts() {
+    refreshNavCounts();
+    setInterval(refreshNavCounts, 30000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshNavCounts(); });
   }
 
   // ---------------------------------------------------------------- shell
@@ -202,10 +196,10 @@ const App = (() => {
     document.body.prepend(header);
     const nav = document.createElement("nav");
     nav.className = "bottom-nav"; nav.setAttribute("aria-label", "Primary");
-    const b = (href, key, icon, label) => `<a href="${href}" class="${opts.active === key ? "active" : ""}"><i class="bi ${icon}"></i>${label}</a>`;
-    nav.innerHTML = b("/", "home", "bi-house-door", "Home") + b("/search.html", "search", "bi-search", "Explore") + b("/cart.html", "cart", "bi-bag", "Cart") + b("/orders.html", "orders", "bi-receipt", "Orders") + b(user ? "/profile.html" : "/auth/login.html", "profile", "bi-person", user ? "Profile" : "Log in");
+    const b = (href, key, icon, label, badgeId) => `<a href="${href}" class="${opts.active === key ? "active" : ""}">${badgeId ? `<span class="badge-dot d-none" id="${badgeId}">0</span>` : ""}<i class="bi ${icon}"></i>${label}</a>`;
+    nav.innerHTML = b("/", "home", "bi-house-door", "Home") + b("/search.html", "search", "bi-search", "Explore") + b("/cart.html", "cart", "bi-bag", "Cart", "nav-cart-badge") + b("/orders.html", "orders", "bi-receipt", "Orders", "nav-orders-badge") + b(user ? "/profile.html" : "/auth/login.html", "profile", "bi-person", user ? "Profile" : "Log in");
     document.body.append(nav);
-    if (user) mountQuickBar(nav);
+    if (user) watchNavCounts();
     wireCards(document.body);
     if ((typeof Cart !== "undefined" ? Cart : undefined)) Cart.refreshBadge();
     if (user && (typeof Notifs !== "undefined" ? Notifs : undefined)) Notifs.refreshBadge();

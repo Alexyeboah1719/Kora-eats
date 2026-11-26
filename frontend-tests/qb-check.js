@@ -37,7 +37,7 @@ async function openPage(session, path) {
       w.scrollTo = () => {}; w.alert = () => {}; w.confirm = () => true;
     } });
   // let async shell + API calls settle
-  for (let i = 0; i < 40; i++) { await sleep(250); if (dom.window.document.querySelector(".quick-bar #qb-cart-n")) break; }
+  for (let i = 0; i < 40; i++) { await sleep(250); if (dom.window.document.getElementById("nav-cart-badge")) break; }
   await sleep(500);
   return { dom, errors };
 }
@@ -63,14 +63,15 @@ async function openPage(session, path) {
 
   const { dom, errors } = await openPage(s, "/search.html");
   const d = dom.window.document;
-  const qb = d.querySelector(".quick-bar");
-  console.log("quick-bar present:", !!qb);
-  if (qb) {
-    const cn = d.getElementById("qb-cart-n"), on = d.getElementById("qb-orders-n");
-    console.log("cart badge text:", cn && cn.textContent, "hidden:", cn && cn.classList.contains("d-none"));
-    console.log("orders badge text:", on && on.textContent, "hidden:", on && on.classList.contains("d-none"));
-    console.log("qb bottom style:", qb.style.bottom, "| body class:", d.body.className);
+  const qbGone = !d.querySelector(".quick-bar");
+  console.log("old quick-bar removed:", qbGone);
+  const nav = d.querySelector(".bottom-nav");
+  console.log("bottom-nav present:", !!nav);
+  for (const id of ["nav-cart-badge", "nav-orders-badge"]) {
+    const el = d.getElementById(id);
+    console.log(id, "->", el ? `"${el.textContent}" hidden=${el.classList.contains("d-none")}` : "MISSING");
   }
+  console.log("header cart badge:", d.getElementById("cart-badge")?.textContent);
   console.log("js errors:", errors.length ? errors.slice(0, 5) : "none");
   dom.window.close();
 })().catch((e) => { console.error(e); process.exit(1); });
