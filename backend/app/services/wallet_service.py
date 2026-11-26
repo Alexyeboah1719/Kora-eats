@@ -1,4 +1,6 @@
 """Wallet service for vendor and rider earnings, COD balance management, and commission calculation."""
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
 from decimal import Decimal
