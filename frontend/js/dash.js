@@ -16,12 +16,12 @@ const Dash = (() => {
     const root = document.getElementById("dash-root");
     root.innerHTML = `<div class="dash">
         <header class="dash-header">
-          <a class="brand" href="/"><i class="bi bi-bag-heart-fill text-warning"></i> KORA EATS</a>
+          <a class="brand" href="/"><img src="/icons/logo.png" alt="" width="30" height="30" style="border-radius:8px;vertical-align:-6px"> KORA EATS</a>
           <button class="hamburger" id="dash-menu-toggle" aria-label="Toggle menu"><i class="bi bi-list"></i></button>
         </header>
         <div class="dash-overlay" id="dash-overlay"></div>
         <aside class="dash-side" id="dash-side">
-          <a class="brand" href="/"><i class="bi bi-bag-heart-fill text-warning"></i> KORA EATS</a>
+          <a class="brand" href="/"><img src="/icons/logo.png" alt="" width="30" height="30" style="border-radius:8px;vertical-align:-6px"> KORA EATS</a>
           <div class="who">${App.esc(title)} &middot; ${App.esc(user.full_name)}</div>
           <nav class="dash-nav" aria-label="${App.esc(title)}">${sections.map((s) => `<a href="#${s.id}" data-sec="${s.id}"><i class="bi ${s.icon}"></i>${App.esc(s.label)}</a>`).join("")}
             <a href="/" ><i class="bi bi-house-door"></i>Customer app</a>

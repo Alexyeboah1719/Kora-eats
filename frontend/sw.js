@@ -7,7 +7,7 @@
  *                                           admin, rider...). Private data must not sit in a shared cache.
  *  - Map tiles ............................ never cached (OpenStreetMap tile usage policy).
  */
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL_CACHE = `kora-eats-shell-${VERSION}`;
 const RUNTIME_CACHE = `kora-eats-runtime-${VERSION}`;
 const API_CACHE = `kora-eats-api-${VERSION}`;

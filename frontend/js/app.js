@@ -157,7 +157,7 @@ const App = (() => {
     const header = document.createElement("header");
     header.className = "app-header";
     header.innerHTML = `<div class="container d-flex align-items-center gap-2 py-2">
-      <a class="brand me-3" href="/"><i class="bi bi-bag-heart-fill text-warning" aria-hidden="true"></i> KORA EATS</a>
+      <a class="brand me-3" href="/"><img src="/icons/logo.png" alt="" width="34" height="34" style="border-radius:9px;vertical-align:-7px"> KORA EATS</a>
       <nav class="d-none d-lg-flex gap-1" aria-label="Main">${link("/", "home", "Home")}${link("/search.html", "search", "Explore")}${link("/decide.html", "decide", "Find my meal")}${link("/orders.html", "orders", "Orders")}${link("/favorites.html", "favorites", "Favorites")}${roleLink}</nav>
       <div class="ms-auto d-flex align-items-center gap-1">
         <a class="icon-btn" href="/cart.html" aria-label="Cart"><i class="bi bi-bag"></i><span id="cart-badge" class="badge-dot d-none">0</span></a>
