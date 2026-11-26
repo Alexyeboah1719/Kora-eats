@@ -22,6 +22,12 @@ body.app { padding-bottom: 76px; }
 .quick-bar a i { color: var(--gold); font-size: 1.15rem; }
 .quick-bar .qb-n { background: var(--gold); color: var(--ink); border-radius: 999px; min-width: 22px; height: 22px; padding: 0 7px; display: inline-grid; place-items: center; font-size: .78rem; }
 .quick-bar .qb-n.d-none { display: none; }
+/* room for the bar + keep floating widgets clear of it */
+@media (max-width: 991.98px) {
+  body.app.has-quick-bar { padding-bottom: 132px; }
+  body.has-quick-bar .ai-fab, body.has-quick-bar .ai-panel { bottom: 142px; }
+  body.has-quick-bar #pwa-install-banner { bottom: 128px !important; }
+}
 
 .loc-bar { display: flex; align-items: center; gap: .5rem; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: .55rem .8rem; width: 100%; text-align: left; }
 .loc-bar .bi { color: var(--ok); }

@@ -162,8 +162,9 @@ const App = (() => {
     qb.className = "quick-bar";
     qb.innerHTML = `<a href="/cart.html"><i class="bi bi-bag"></i>Cart <span class="qb-n d-none" id="qb-cart-n">0</span></a>` +
                    `<a href="/orders.html"><i class="bi bi-receipt"></i>Orders <span class="qb-n d-none" id="qb-orders-n">0</span></a>`;
-    qb.style.bottom = nav.offsetHeight + "px";      // sit exactly on top of the bottom nav (incl. safe-area padding)
+    qb.style.bottom = (nav.offsetHeight || 64) + "px";   // sit exactly on top of the bottom nav (incl. safe-area padding); 64px fallback if layout isn't measurable
     document.body.append(qb);
+    document.body.classList.add("has-quick-bar");   // lets CSS reserve space and move floating widgets
     refreshQuickBar();
     setInterval(refreshQuickBar, 30000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshQuickBar(); });
