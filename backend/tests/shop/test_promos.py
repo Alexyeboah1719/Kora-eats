@@ -219,19 +219,20 @@ def test_cannot_schedule_when_vendor_is_closed_then(world, shopper, db):
     assert r.status_code in (409,) and r.json()["detail"]["code"] in ("vendor_closed_then", "cart_invalid")
 
 
-def test_scheduled_order_is_hidden_from_vendor_until_released(world, shopper, vendor_user, login, db):
+def test_scheduled_order_is_listed_but_locked_until_released(world, shopper, vendor_user, login, db):
     shopper.post("/api/cart/items", json={"menu_item_id": world.spicy.id})
     o = shopper.post("/api/orders", json={"address_id": shopper.address_id, "scheduled_for": later(240)}).json()
     advance_to(db, o["id"], S.PAID)
     v = login(vendor_user)
-    assert v.get("/api/vendor/orders").json() == []                                     # not yet
+    listed = v.get("/api/vendor/orders").json()                                             # visible right away...
+    assert [x["code"] for x in listed] == [o["code"]] and listed[0]["released_at"] is None   # ...but not yet actionable
     assert v.post(f"/api/vendor/orders/{o['id']}/status", json={"status": "CONFIRMED"}).json()["detail"]["code"] == "not_released"
     assert scheduler.release_scheduled_orders(db) == 0                                  # 4h away: too early
     order = db.get(Order, o["id"]); order.scheduled_for = utcnow() + timedelta(minutes=40); db.commit()
     assert scheduler.release_scheduled_orders(db) == 1                                  # within prep time + 30 min lead
     assert scheduler.release_scheduled_orders(db) == 0                                  # only once
     listed = v.get("/api/vendor/orders").json()
-    assert [x["code"] for x in listed] == [o["code"]] and listed[0]["scheduled_for"]
+    assert [x["code"] for x in listed] == [o["code"]] and listed[0]["scheduled_for"] and listed[0]["released_at"]
     assert v.post(f"/api/vendor/orders/{o['id']}/status", json={"status": "CONFIRMED"}).status_code == 200
     assert "Scheduled order due soon" in [n["title"] for n in login(vendor_user).get("/api/notifications").json()]
 
@@ -254,7 +255,8 @@ def test_unpaid_orders_expire_but_paid_ones_survive(world, shopper, place_order,
     db.expire_all()
     assert db.get(Order, stale["id"]).status == S.CANCELLED and db.get(Order, stale["id"]).cancelled_reason == "Payment timed out"
     assert db.get(Order, paid_late["id"]).status == S.PAID                                         # rescued by verification
-    assert scheduler.run_cycle(db).keys() == {"released", "expired", "reminders", "pruned", "rec_events_pruned", "withdrawals_reconciled"}
+    assert set(scheduler.run_cycle(db)) == {"released", "expired", "payments_reconciled", "reminders", "pruned",
+                                            "rec_events_pruned", "withdrawals_reconciled", "food_refunds", "dispatch"}
 
 
 # ---------------------------------------------------------------- group orders

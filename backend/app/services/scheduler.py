@@ -24,10 +24,10 @@ RELEASE_LEAD_MINUTES = 30      # vendors see a scheduled order this long before 
 
 
 def release_scheduled_orders(db: Session) -> int:
-    """Paid scheduled orders become visible to the vendor shortly before they need to start preparing."""
+    """Paid/COD scheduled orders become actionable by the vendor shortly before they need to start preparing."""
     now = utcnow()
     rows = db.scalars(select(Order).where(Order.scheduled_for.is_not(None), Order.released_at.is_(None),
-                                          Order.status.in_([S.PAID, S.CONFIRMED]))).unique().all()
+                                          Order.status.in_([S.PAID, S.CONFIRMED, S.PLACED]))).unique().all()
     n = 0
     for o in rows:
         if now >= o.scheduled_for - timedelta(minutes=o.vendor.avg_prep_minutes + RELEASE_LEAD_MINUTES):

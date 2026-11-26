@@ -148,6 +148,27 @@ const App = (() => {
     });
   }
 
+  // ---------------------------------------------------------------- mobile quick bar (cart + ongoing orders)
+  const ORDER_DONE = new Set(["DELIVERED", "COLLECTED", "RETURNED_TO_VENDOR", "CANCELLED", "REFUNDED"]);
+  async function refreshQuickBar() {
+    const cn = document.getElementById("qb-cart-n"), on = document.getElementById("qb-orders-n");
+    if (!cn && !on) return;
+    const [cart, orders] = await Promise.all([api("/cart"), api("/orders")]);
+    if (cn) { const n = cart.ok ? cart.data.item_count : 0; cn.textContent = n; cn.classList.toggle("d-none", !n); }
+    if (on) { const n = orders.ok ? orders.data.filter((o) => !ORDER_DONE.has(o.status)).length : 0; on.textContent = n; on.classList.toggle("d-none", !n); }
+  }
+  function mountQuickBar(nav) {
+    const qb = document.createElement("div");
+    qb.className = "quick-bar";
+    qb.innerHTML = `<a href="/cart.html"><i class="bi bi-bag"></i>Cart <span class="qb-n d-none" id="qb-cart-n">0</span></a>` +
+                   `<a href="/orders.html"><i class="bi bi-receipt"></i>Orders <span class="qb-n d-none" id="qb-orders-n">0</span></a>`;
+    qb.style.bottom = nav.offsetHeight + "px";      // sit exactly on top of the bottom nav (incl. safe-area padding)
+    document.body.append(qb);
+    refreshQuickBar();
+    setInterval(refreshQuickBar, 30000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshQuickBar(); });
+  }
+
   // ---------------------------------------------------------------- shell
   const ROLE_HOME = { VENDOR: "/vendor/dashboard.html", RIDER: "/rider/dashboard.html", ADMIN: "/admin/dashboard.html" };
   async function loadUser() {
@@ -183,6 +204,7 @@ const App = (() => {
     const b = (href, key, icon, label) => `<a href="${href}" class="${opts.active === key ? "active" : ""}"><i class="bi ${icon}"></i>${label}</a>`;
     nav.innerHTML = b("/", "home", "bi-house-door", "Home") + b("/search.html", "search", "bi-search", "Explore") + b("/cart.html", "cart", "bi-bag", "Cart") + b("/orders.html", "orders", "bi-receipt", "Orders") + b(user ? "/profile.html" : "/auth/login.html", "profile", "bi-person", user ? "Profile" : "Log in");
     document.body.append(nav);
+    if (user) mountQuickBar(nav);
     wireCards(document.body);
     if ((typeof Cart !== "undefined" ? Cart : undefined)) Cart.refreshBadge();
     if (user && (typeof Notifs !== "undefined" ? Notifs : undefined)) Notifs.refreshBadge();

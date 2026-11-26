@@ -7,7 +7,7 @@ Dash.register("vendor", { id: "orders", label: "Orders", icon: "bi-receipt", asy
     if (view === "active" && lastCount >= 0 && list.filter((o) => o.status === "PAID" || o.status === "PLACED").length > lastCount && quiet) UI.toast("New order received!");
     lastCount = list.filter((o) => o.status === "PAID" || o.status === "PLACED").length;
     el.innerHTML = `<div class="d-flex gap-2 mb-3"><button class="pill-btn ${view === "active" ? "active" : ""}" data-view="active">Active</button><button class="pill-btn ${view === "history" ? "active" : ""}" data-view="history">History</button></div>` +
-      (list.length ? list.map((o) => `<div class="panel mb-2"><div class="d-flex justify-content-between flex-wrap gap-1"><strong>${App.esc(o.code)}</strong><span>${App.fulfilPill(o)} ${App.statusPill(o.status)}</span></div>
+      (list.length ? list.map((o) => { const locked = !!(o.scheduled_for && !o.released_at); return `<div class="panel mb-2"><div class="d-flex justify-content-between flex-wrap gap-1"><strong>${App.esc(o.code)}</strong><span>${locked ? '<span class="status-pill warn">Scheduled</span> ' : ""}${App.fulfilPill(o)} ${App.statusPill(o.status)}</span></div>
         <div class="meta">${App.fmtDate(o.created_at)}${o.scheduled_for ? ` &middot; <strong>Scheduled for ${App.fmtDate(o.scheduled_for)}</strong>` : ""}</div>
         <ul class="my-2 ps-3">${o.items.map((i) => `<li><strong>${i.quantity}x</strong> ${App.esc(i.name)}${i.special_instructions ? ` <em class="meta">(${App.esc(i.special_instructions)})</em>` : ""}</li>`).join("")}</ul>
         ${o.notes ? `<div class="meta">Note: ${App.esc(o.notes)}</div>` : ""}
@@ -16,11 +16,11 @@ Dash.register("vendor", { id: "orders", label: "Orders", icon: "bi-receipt", asy
         ${o.status === "RETURNED" ? `<div class="meta mt-1 text-warning"><i class="bi bi-arrow-counterclockwise"></i> <strong>The rider is bringing this order back.</strong> Accept the return so they can set off; the food will not go back on sale.</div>` : ""}
         ${o.status === "ACCEPTED_RETURN" ? `<div class="meta mt-1"><i class="bi bi-arrow-counterclockwise"></i> Return accepted — waiting for the rider to bring the food back. Confirm receipt once you have it; it will not go back on sale.</div>` : ""}
         <div class="d-flex justify-content-between align-items-center mt-2"><strong>${App.money(o.total)}</strong>
-          <div class="d-flex gap-2">${(NEXT[o.status] || []).map(([s, l, c]) => `<button class="btn btn-sm ${c}" data-id="${o.id}" data-s="${s}">${l}</button>`).join("")}
+          <div class="d-flex gap-2">${locked ? `<span class="meta align-self-center"><i class="bi bi-clock"></i> Opens for you closer to the scheduled time</span>` : `${(NEXT[o.status] || []).map(([s, l, c]) => `<button class="btn btn-sm ${c}" data-id="${o.id}" data-s="${s}">${l}</button>`).join("")}
           ${o.status === "RETURNED" ? `<button class="btn btn-sm btn-success" data-ret="accept" data-id="${o.id}">Accept return</button><button class="btn btn-sm btn-outline-danger" data-ret="decline" data-id="${o.id}">Decline</button>` : ""}
           ${o.status === "ACCEPTED_RETURN" ? `<button class="btn btn-sm btn-success" data-ret="confirm" data-id="${o.id}">Confirm receipt</button>` : ""}
           ${o.fulfillment_type === "PICKUP" && o.status === "READY_FOR_PICKUP" ? `<button class="btn btn-sm btn-success" data-id="${o.id}" data-collect="1">Hand over (enter code)</button>` : ""}
-          ${["PAID", "PLACED", "CONFIRMED"].includes(o.status) ? `<button class="btn btn-sm btn-outline-danger" data-id="${o.id}" data-reject="1">Reject</button>` : ""}</div></div></div>`).join("")
+          ${["PAID", "PLACED", "CONFIRMED"].includes(o.status) ? `<button class="btn btn-sm btn-outline-danger" data-id="${o.id}" data-reject="1">Reject</button>` : ""}`}</div></div></div>`; }).join("")
         : App.empty("bi-receipt", view === "active" ? "No active orders" : "No past orders", "New orders appear here automatically."));
   }
   el.addEventListener("click", async (e) => {

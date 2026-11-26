@@ -1,6 +1,11 @@
 /* Global cart helper loaded on every customer page (adds to cart + header badge). */
 const Cart = (() => {
-  const setBadge = (n) => { const b = document.getElementById("cart-badge"); if (!b) return; b.textContent = n; b.classList.toggle("d-none", !n); };
+  const setBadge = (n) => {
+    const b = document.getElementById("cart-badge");
+    if (b) { b.textContent = n; b.classList.toggle("d-none", !n); }
+    const q = document.getElementById("qb-cart-n");                 // mobile quick bar
+    if (q) { q.textContent = n; q.classList.toggle("d-none", !n); }
+  };
   async function refreshBadge() {
     if (!App.state.user) return setBadge(0);
     const r = await App.api("/cart");

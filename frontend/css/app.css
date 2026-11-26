@@ -15,6 +15,14 @@ body.app { padding-bottom: 76px; }
 .bottom-nav a.active { color: var(--ink); }
 .bottom-nav a.active i { color: var(--ok); }
 
+/* Mobile quick bar: cart + ongoing-orders counts, floating just above the bottom nav */
+.quick-bar { position: fixed; left: 12px; right: 12px; z-index: 1020; display: flex; gap: 8px; }
+@media (min-width: 992px) { .quick-bar { display: none; } }
+.quick-bar a { flex: 1; display: flex; align-items: center; justify-content: center; gap: .5rem; background: var(--ink); color: #fff; text-decoration: none; border-radius: 12px; padding: .6rem .8rem; font-weight: 700; font-size: .9rem; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.quick-bar a i { color: var(--gold); font-size: 1.15rem; }
+.quick-bar .qb-n { background: var(--gold); color: var(--ink); border-radius: 999px; min-width: 22px; height: 22px; padding: 0 7px; display: inline-grid; place-items: center; font-size: .78rem; }
+.quick-bar .qb-n.d-none { display: none; }
+
 .loc-bar { display: flex; align-items: center; gap: .5rem; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: .55rem .8rem; width: 100%; text-align: left; }
 .loc-bar .bi { color: var(--ok); }
 .section-title { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 1.25rem; margin: 1.75rem 0 .75rem; display: flex; justify-content: space-between; align-items: baseline; }

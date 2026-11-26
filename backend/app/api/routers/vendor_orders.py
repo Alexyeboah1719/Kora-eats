@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.core.rate_limit import rate_limit
 from app.core.timeutil import utcnow
-from sqlalchemy import or_, select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.api.routers.vendor import require_vendor
@@ -25,16 +25,14 @@ ACTIVE = [S.PAID, S.CONFIRMED, S.PLACED, S.PREPARING, S.READY_FOR_PICKUP, S.RIDE
 HISTORY = [S.DELIVERED, S.COLLECTED, S.CANCELLED, S.REFUNDED, S.RETURN_DECLINED, S.RETURNED_TO_VENDOR]
 
 
-def visible_orders_filter(q):
-    """Scheduled ('deliver later') orders appear only once the scheduler has released them."""
-    return q.where(or_(Order.scheduled_for.is_(None), Order.released_at.is_not(None)))
-
-
 @router.get("")
 def list_orders(view: str = "active", v: Vendor = Depends(require_vendor), db: Session = Depends(get_db)):
+    """Scheduled ('deliver later') orders are listed right away so the vendor sees the notification's
+    order, but they sort last and stay read-only until the scheduler releases them (see set_status)."""
     statuses = HISTORY if view == "history" else ACTIVE
-    q = select(Order).where(Order.vendor_id == v.id, Order.status.in_(statuses))
-    q = visible_orders_filter(q).order_by(Order.id.desc()).limit(100)
+    unreleased = and_(Order.scheduled_for.is_not(None), Order.released_at.is_(None))
+    q = (select(Order).where(Order.vendor_id == v.id, Order.status.in_(statuses))
+         .order_by(unreleased.asc(), Order.id.desc()).limit(100))
     return [svc.order_out(db, o, for_vendor=True) for o in db.scalars(q).unique()]
 
 
