@@ -1,0 +1,54 @@
+# Render blueprint: one Docker web service serves the API AND the static frontend.
+# Deploy: Render dashboard -> New -> Blueprint -> connect this repo.
+# Fill in the `sync: false` values when prompted (secrets and your Neon DATABASE_URL).
+services:
+  - type: web
+    name: kora-eats
+    runtime: docker
+    plan: free             # free tier: sleeps when idle (~50s cold start) and has NO persistent disk — uploads are lost on redeploy. Use `starter` + disk for production.
+    region: frankfurt      # closest Render region to Ghana
+    branch: main
+    healthCheckPath: /api/health
+    # No `disk:` on the free plan — /data/uploads is ephemeral. Add it back with plan: starter for production.
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: APP_NAME
+        value: KORA EATS
+      # Generate with: python -c "import secrets; print(secrets.token_urlsafe(48))"
+      - key: SECRET_KEY
+        sync: false
+      # Neon: postgresql+psycopg://USER:PASSWORD@HOST/DBNAME?sslmode=require  (sslmode=require is mandatory)
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_POOL_SIZE
+        value: "5"
+      - key: DB_MAX_OVERFLOW
+        value: "10"
+      # Your actual Render URL (service name got the -n9in suffix)
+      - key: FRONTEND_BASE_URL
+        value: https://kora-eats-n9in.onrender.com
+      - key: CORS_ORIGINS
+        value: https://kora-eats-n9in.onrender.com
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
+      - key: CSP_MODE
+        value: report-only
+      - key: API_RATE_LIMIT_PER_MINUTE
+        value: "300"
+      - key: PAYMENT_PROVIDER
+        value: paystack
+      - key: PAYSTACK_SECRET_KEY     # sk_test_... first, then sk_live_...
+        sync: false
+      - key: ENABLED_PAYMENT_METHODS
+        value: MOBILE_MONEY
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM               # e.g. "KORA EATS <orders@yourdomain.com>" after verifying the domain in Resend
+        sync: false
+      - key: UPLOAD_DIR
+        value: /data/uploads
+      - key: WEB_CONCURRENCY   # free instances have 512MB RAM — one worker is safer
+        value: "1"
