@@ -55,6 +55,7 @@ const Dash = (() => {
     });
     
     document.getElementById("dash-logout").addEventListener("click", async (e) => { e.preventDefault(); await App.api("/auth/logout", { method: "POST" }); location.assign("/auth/login.html"); });
+    if (window.PWA) PWA.init();        // dashboards don't use mountShell: register the service worker here too (install + push)
     let current = null;
     async function show() {
       const id = location.hash.slice(1) || sections[0].id;
