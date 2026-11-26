@@ -1,0 +1,16 @@
+[tool.ruff]
+line-length = 200
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+# Catch real bugs: syntax errors, undefined names, unused imports and variables. (Style opinions are left to the team.)
+select = ["E9", "F"]
+ignore = ["F401"]           # re-exports in __init__ files are intentional
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["F841", "F811"]      # pytest fixtures are re-imported and then used by name: that is how pytest works
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]

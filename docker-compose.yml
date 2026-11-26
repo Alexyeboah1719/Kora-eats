@@ -1,0 +1,19 @@
+# Try the production setup on one machine:   docker compose up --build
+# Needs a file named .env.production next to this one (copy backend/.env.production.example and fill it in).
+services:
+  db:
+    image: postgres:16
+    environment: { POSTGRES_USER: kora, POSTGRES_PASSWORD: change-me-db-password, POSTGRES_DB: kora }
+    volumes: [dbdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U kora"], interval: 5s, retries: 10 }
+  app:
+    build: .
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql+psycopg://kora:change-me-db-password@db:5432/kora     # must match the password above
+    depends_on: { db: { condition: service_healthy } }
+    ports: ["8000:8000"]
+    volumes: [uploads:/data/uploads]
+volumes:
+  dbdata:
+  uploads:
