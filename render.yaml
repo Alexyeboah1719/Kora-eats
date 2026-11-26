@@ -12,7 +12,7 @@ services:
     # No `disk:` on the free plan — /data/uploads is ephemeral. Add it back with plan: starter for production.
     envVars:
       - key: ENVIRONMENT
-        value: production
+        value: development   # TESTING ONLY: allows SKIP_EMAIL_VERIFICATION until Resend/domain is ready. Switch back to production for launch.
       - key: DEBUG
         value: "false"
       - key: APP_NAME
@@ -27,11 +27,15 @@ services:
         value: "5"
       - key: DB_MAX_OVERFLOW
         value: "10"
-      # Your actual Render URL (service name got the -n9in suffix)
+      # TESTING: accounts are created email-verified instantly, no OTP (no Resend domain yet).
+      # MUST be removed and ENVIRONMENT set back to production before real launch.
+      - key: SKIP_EMAIL_VERIFICATION
+        value: "true"
+      # Your actual Render URL
       - key: FRONTEND_BASE_URL
-        value: https://kora-eats-n9in.onrender.com
+        value: https://kora-eats.onrender.com
       - key: CORS_ORIGINS
-        value: https://kora-eats-n9in.onrender.com
+        value: https://kora-eats.onrender.com
       - key: TRUSTED_PROXY_HOPS
         value: "1"
       - key: CSP_MODE
@@ -44,6 +48,12 @@ services:
         sync: false
       - key: ENABLED_PAYMENT_METHODS
         value: MOBILE_MONEY
+      - key: GOOGLE_CLIENT_ID     # public by design; empty disables Google sign-in
+        value: 424429116910-n09qrj5gvc048aqnl2kb64gha22q45na.apps.googleusercontent.com
+      - key: TURNSTILE_SITE_KEY   # public; served to the browser so the widget can render
+        value: 0x4AAAAAAGPAZ-7I387CyFnH
+      - key: TURNSTILE_SECRET_KEY # server only
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM               # e.g. "KORA EATS <orders@yourdomain.com>" after verifying the domain in Resend
