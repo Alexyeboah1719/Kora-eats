@@ -10,7 +10,18 @@ const App = (() => {
     if (form) opts.body = form;                                        // multipart (uploads)
     else if (body !== undefined) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
     if (idempotencyKey) opts.headers["Idempotency-Key"] = idempotencyKey;
-    const res = await fetch(url, opts);
+    // A sleeping/restarting server (or a stale keep-alive connection) can drop the request before any
+    // response arrives. fetch() then throws a bare network error — retry once on a fresh connection.
+    // Writes are safe to repeat (PUT/PATCH/DELETE are idempotent; POSTs that create things either carry
+    // an Idempotency-Key or are excluded). POSTs without a key are NOT retried: the first attempt may
+    // have reached the server and a retry could create a duplicate.
+    const retryable = method !== "POST" || !!idempotencyKey;
+    let res = null, netErr = null;
+    for (let attempt = 0; attempt < (retryable ? 2 : 1); attempt++) {
+      try { res = await fetch(url, opts); break; }
+      catch (e) { netErr = e; if (attempt === 0) await new Promise((r) => setTimeout(r, 1200)); }
+    }
+    if (!res) throw netErr;
     let data = null;
     try { data = await res.json(); } catch (_) { /* no body */ }
     return { ok: res.ok, status: res.status, data };

@@ -61,9 +61,28 @@ def expire_unpaid_orders(db: Session) -> int:
     return cancelled
 
 
+def reconcile_unpaid(db: Session) -> int:
+    """Ask the provider about every unpaid online order each cycle. A customer can pay and never come
+    back (Mobile Money approvals finish on the phone, webhooks may not be configured): without this the
+    order would look unpaid until the expiry job ran."""
+    ids = db.scalars(select(Order.id).where(Order.status.in_([S.PENDING_PAYMENT, S.PAYMENT_FAILED]))
+                     .order_by(Order.id.desc()).limit(50)).all()
+    paid = 0
+    for oid in ids:
+        try:
+            o = payment_service.verify_order(db, oid)
+            paid += o.status == S.PAID
+            db.commit()
+        except Exception:
+            db.rollback()
+            logger.exception("Could not reconcile order %s", oid)
+    return paid
+
+
 def run_cycle(db: Session) -> dict:
     out = {}
     for name, fn in (("released", release_scheduled_orders), ("expired", expire_unpaid_orders),
+                     ("payments_reconciled", reconcile_unpaid),
                      ("reminders", review_service.send_due_reminders), ("pruned", tracking_service.prune_old_tracking),
                      ("rec_events_pruned", rec_events.prune), ("withdrawals_reconciled", payout_service.reconcile_processing),
                      ("food_refunds", return_service.refund_pending_orders), ("dispatch", dispatch_service.dispatch_cycle)):

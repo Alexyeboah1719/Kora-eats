@@ -3,7 +3,15 @@
   const root = document.getElementById("page");
   root.innerHTML = `<h1 class="h4">My orders</h1><div id="list">${App.skeletons(3)}</div>`;
   async function load() {
-    const list = await App.call("/orders"); if (!list) return;
+    let list = await App.call("/orders"); if (!list) return;
+    // Customers who paid but were never redirected back still show as unpaid: re-check with the
+    // provider for every payable order, then re-fetch so the list reflects confirmed payments.
+    const payable = list.filter((o) => o.can_pay);
+    if (payable.length) {
+      await Promise.all(payable.map((o) => App.api(`/payments/orders/${o.id}/verify`)));
+      const fresh = await App.call("/orders");
+      if (fresh) list = fresh;
+    }
     document.getElementById("list").innerHTML = list.length ? list.map((o) => `
       <a class="panel d-block text-decoration-none text-reset mb-2" href="/order.html?id=${o.id}"><div class="d-flex justify-content-between flex-wrap gap-1">
         <strong>${App.esc(o.vendor.name)}</strong><span>${App.fulfilPill(o)} ${App.statusPill(o.status)}</span></div>

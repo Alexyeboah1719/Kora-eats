@@ -33,9 +33,9 @@ services:
         value: "true"
       # Your actual Render URL
       - key: FRONTEND_BASE_URL
-        value: https://kora-eats.onrender.com
+        value: https://kora-eats-bl3q.onrender.com
       - key: CORS_ORIGINS
-        value: https://kora-eats.onrender.com
+        value: https://kora-eats-bl3q.onrender.com
       - key: TRUSTED_PROXY_HOPS
         value: "1"
       - key: CSP_MODE
@@ -50,9 +50,10 @@ services:
         value: MOBILE_MONEY
       - key: GOOGLE_CLIENT_ID     # public by design; empty disables Google sign-in
         value: 424429116910-n09qrj5gvc048aqnl2kb64gha22q45na.apps.googleusercontent.com
-      - key: TURNSTILE_SITE_KEY   # public; served to the browser so the widget can render
-        value: 0x4AAAAAAGPAZ-7I387CyFnH
-      - key: TURNSTILE_SECRET_KEY # server only
+      # Turnstile disabled for the testing phase (empty keys = no-op). Re-add site+secret keys to re-enable.
+      - key: TURNSTILE_SITE_KEY
+        value: ""
+      - key: TURNSTILE_SECRET_KEY
         sync: false
       - key: RESEND_API_KEY
         sync: false

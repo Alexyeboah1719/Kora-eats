@@ -92,7 +92,15 @@ const Dash = (() => {
         <div class="modal-body">${inputs}<div class="alert alert-danger d-none" role="alert"></div></div>
         <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-dark" type="submit">${App.esc(submitLabel)}</button></div></form></div></div>`;
       document.body.append(wrap);
-      const el = wrap.querySelector(".modal"), modal = new bootstrap.Modal(el);
+      const el = wrap.querySelector(".modal");
+      let modal;
+      try {
+        modal = new bootstrap.Modal(el);   // throws if the Bootstrap CDN script didn't load
+      } catch (_) {
+        wrap.remove();
+        if (window.UI && UI.toast) UI.toast("Couldn't open the form — please reload the page and try again.", "error");
+        return resolve(null);
+      }
       let done = false;
       wrap.querySelector("form").addEventListener("submit", (e) => {
         e.preventDefault();

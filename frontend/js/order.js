@@ -95,8 +95,14 @@
   }
 
   async function load() {
-    const o = await App.call(`/orders/${encodeURIComponent(id)}`);
+    let o = await App.call(`/orders/${encodeURIComponent(id)}`);
     if (!o) { box.innerHTML = App.empty("bi-receipt", "Order not found", ""); return; }
+    // The customer may have paid but never been redirected back (Mobile Money approvals finish on the
+    // phone). While the order is payable, ask the server to re-check with the provider on every poll.
+    if (o.can_pay) {
+      const v = await App.call(`/payments/orders/${o.id}/verify`);
+      if (v) o = v;
+    }
     const changed = !order || order.status !== o.status || JSON.stringify(order.review) !== JSON.stringify(o.review);
     order = o;
     if (changed) render();
