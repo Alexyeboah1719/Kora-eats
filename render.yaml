@@ -59,6 +59,14 @@ services:
         sync: false
       - key: EMAIL_FROM               # e.g. "KORA EATS <orders@yourdomain.com>" after verifying the domain in Resend
         sync: false
+      # Web Push (notifications when the app is closed). Public key is safe to commit;
+      # paste the private key in the dashboard. Generate a pair with: python -m scripts.generate_vapid
+      - key: VAPID_PUBLIC_KEY
+        value: BMgqGXzdOFmZJ411dF02XUP8uSE3ig-WFAJ9NIiScdad2m88htlSe9xCAxc8SqoFJL5BXhPiCR9KAON1fGwAjCc
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:admin@koraeats.app
       - key: UPLOAD_DIR
         value: /data/uploads
       - key: WEB_CONCURRENCY   # free instances have 512MB RAM — one worker is safer
