@@ -42,7 +42,7 @@ Dash.register("admin", { id: "wallets", label: "Wallets", icon: "bi-wallet2", as
           <div class="table-wrap"><table class="table table-sm align-middle mb-0"><thead><tr><th>Owner</th><th>Accounts</th><th>Available</th><th>Pending</th><th>Owes platform</th></tr></thead><tbody>${owedRows}</tbody></table></div></div></div>
       </div>
       <div class="chart-box mt-3"><h2 class="h6">Reconciliation</h2>
-        <p class="small mb-1">Ledger balance: <strong>${App.money(recon.ledger_balance)}</strong> &middot; Paid orders in progress: <strong>${App.money(recon.paid_orders_in_progress)}</strong> &middot; Expected Paystack balance: <strong>${App.money(recon.expected_paystack_balance)}</strong></p>
+        <p class="small mb-1">Ledger balance: <strong>${App.money(recon.ledger_balance)}</strong> &middot; Paid orders in progress: <strong>${App.money(recon.paid_orders_in_progress)}</strong>${recon.debt_payments_received ? ` &middot; Debt payments received: <strong>${App.money(recon.debt_payments_received)}</strong>` : ""} &middot; Expected Paystack balance: <strong>${App.money(recon.expected_paystack_balance)}</strong></p>
         <p class="meta mb-0">${App.esc(recon.note)}</p></div>
       ${cashRows ? `<div class="chart-box mt-3"><h2 class="h6">Cash collected by riders (COD not yet remitted)</h2>
         <div class="table-wrap"><table class="table table-sm align-middle mb-0"><thead><tr><th>Rider</th><th class="text-end">Cash in hand</th></tr></thead><tbody>${cashRows}</tbody></table></div></div>` : ""}

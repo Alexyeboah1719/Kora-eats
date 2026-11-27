@@ -61,7 +61,7 @@ COMPLETED = (S.DELIVERED, S.COLLECTED)     # an order that reached the customer,
 
 
 def cod_allowed(db: Session, user: User, vendor, total: Decimal) -> tuple[bool, str | None]:
-    """Whether this customer may pay this vendor's order in cash on delivery."""
+    """Whether this customer may pay this vendor's order in cash — on delivery to the rider, or to the vendor at pickup."""
     from app.core.money import cedis
     from app.models.ai import CustomerPreference
     s = get_settings()

@@ -118,5 +118,7 @@ def collect(order_id: int, data: CollectIn, background: BackgroundTasks, user: U
     if not hmac.compare_digest((o.pickup_code or "").upper(), data.code.strip().upper()):
         raise api_error(422, "wrong_code", "That pickup code doesn't match. Ask the customer to check their order page.")
     svc.change_status(db, o, S.COLLECTED, "vendor", user.id, "Collected by customer", background)
+    if o.payment_mode == "COD":
+        o.cod_collected_at = utcnow()          # the vendor confirms they collected the cash
     db.commit()
     return svc.order_out(db, o, for_vendor=True)

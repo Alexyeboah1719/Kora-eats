@@ -202,9 +202,15 @@ def upcoming(db: Session, vendor_id: int = None, rider_id: int = None) -> list:
     if vendor_id:
         orders = db.scalars(q_.where(Order.vendor_id == vendor_id).order_by(Order.id.desc()).limit(20)).all()
         vendor_pct, _ = rates()
-        return [{"order_id": o.id, "code": o.code, "order_status": o.status.value,
-                 "you_will_earn": float(economics(o, Decimal(str(vendor_pct)), 0, rider_involved=False).vendor_net),
-                 "available_after": "delivery"} for o in orders]
+        out = []
+        for o in orders:
+            e = economics(o, Decimal(str(vendor_pct)), 0, rider_involved=False)
+            net = e.vendor_net
+            if getattr(o, "payment_mode", "ONLINE") == "COD" and o.fulfillment_type == FulfillmentType.PICKUP:
+                net = q(net - o.total)      # vendor keeps the cash; the wallet will show minus the commission owed
+            out.append({"order_id": o.id, "code": o.code, "order_status": o.status.value,
+                        "you_will_earn": float(net), "available_after": "delivery"})
+        return out
     if rider_id:
         rows = db.execute(select(Order).join(_D, _D.order_id == Order.id).where(_D.rider_id == rider_id, Order.status.in_(in_progress),
                                                                                Order.earnings_posted_at.is_(None))
@@ -683,6 +689,13 @@ def post_order(db: Session, order: Order) -> bool:
     if e.funded_by == "VENDOR" and order.discount and order.discount > 0:
         _ledger(db, v.id, order, LedgerKind.DISCOUNT_FUNDING, -order.discount, hold, f"{code}: discount you funded")
 
+    # COD pickup: no rider is involved, so the vendor collected the whole total in cash. The
+    # COD_CASH_COLLECTED entry records the cash they physically hold; their wallet nets to minus
+    # the commission they owe KORA EATS, which their future earnings repay automatically.
+    if is_cod and order.fulfillment_type == FulfillmentType.PICKUP:
+        _ledger(db, v.id, order, LedgerKind.COD_CASH_COLLECTED, -order.total, now,
+                f"{code}: COD cash collected GH₵{order.total} — commission owed to KORA EATS")
+
     # --- rider
     if delivery is not None:
         r = rider_account(db, delivery.rider_id)
@@ -716,9 +729,16 @@ def _notify_earnings(db: Session, order: Order, delivery, e: Economics) -> None:
     from app.services import notification_service as ns
     vendor_owner = getattr(order.vendor, "owner_user_id", None)
     if vendor_owner:
-        ns.notify(db, vendor_owner, "wallet", "You earned money",
-                  f"Order {order.code}: you earned {cedis(e.vendor_net)} (after commission). It becomes withdrawable after the holding period.",
-                  "/vendor/dashboard.html#wallet")
+        if getattr(order, "payment_mode", "ONLINE") == "COD" and order.fulfillment_type == FulfillmentType.PICKUP:
+            owed = q(order.total - e.vendor_net)
+            ns.notify(db, vendor_owner, "wallet", "COD pickup collected",
+                      f"Order {order.code}: the customer paid {cedis(order.total)} cash at pickup. You owe KORA EATS "
+                      f"{cedis(owed)} commission — it is deducted from your wallet earnings automatically.",
+                      "/vendor/dashboard.html#wallet")
+        else:
+            ns.notify(db, vendor_owner, "wallet", "You earned money",
+                      f"Order {order.code}: you earned {cedis(e.vendor_net)} (after commission). It becomes withdrawable after the holding period.",
+                      "/vendor/dashboard.html#wallet")
     if delivery is not None:
         rider_user = db.scalar(select(DeliveryRider.user_id).where(DeliveryRider.id == delivery.rider_id))
         if rider_user:

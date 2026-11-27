@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_roles
@@ -12,6 +12,7 @@ from app.core.timeutil import utcnow
 from app.db.session import get_db
 from app.models.catalog import Vendor
 from app.models.orders import Order, OrderStatus as S
+from app.models.payments import Payment, PaymentPurpose, PaymentStatus
 from app.models.riders import DeliveryRider
 from app.models.user import User, UserRole
 from app.models.wallet import LedgerEntry, LedgerKind as K, WalletAccount, WalletOwner, Withdrawal, WithdrawalStatus as W
@@ -50,14 +51,32 @@ def overview(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db))
         c = ws.balances(db, aid, now)["cash_in_hand"]
         if c > 0:
             holders.append({"rider_id": rid, "name": db.get(DeliveryRider, rid).user.profile.full_name, "cash_in_hand": float(c)})
-    in_progress = Decimal(db.scalar(select(func.coalesce(func.sum(Order.total), 0)).where(Order.payment_mode == "ONLINE", Order.earnings_posted_at.is_(None),
-                                                                                           Order.status.in_([S.PAID, S.CONFIRMED, S.PREPARING, S.READY_FOR_PICKUP, S.RIDER_ASSIGNED, S.PICKED_UP, S.OUT_FOR_DELIVERY, S.RIDER_ARRIVED, S.RETURNED, S.ACCEPTED_RETURN, S.RETURN_DECLINED, S.RETURNED_TO_VENDOR]))))
-    ledger_total = _sum(db)
+    active = [S.PAID, S.CONFIRMED, S.PREPARING, S.READY_FOR_PICKUP, S.RIDER_ASSIGNED, S.PICKED_UP, S.OUT_FOR_DELIVERY, S.RIDER_ARRIVED,
+              S.RETURNED, S.ACCEPTED_RETURN, S.RETURN_DECLINED, S.RETURNED_TO_VENDOR]
+    # What Paystack actually holds for orders still in progress: the verified payment amounts — a
+    # payment can include an outstanding balance on top of the order total, so sum payments, not Order.total.
+    in_progress = Decimal(db.scalar(select(func.coalesce(func.sum(Payment.amount), 0)).join(Order, Order.id == Payment.order_id)
+                                               .where(Payment.status == PaymentStatus.SUCCESS, Order.payment_mode == "ONLINE",
+                                                      Order.earnings_posted_at.is_(None), Order.status.in_(active))))
+    # COD orders are settled in cash, never through Paystack: their ledger entries must not count
+    # toward the expected Paystack balance (adjustments/withdrawals have order_id NULL: they still count).
+    cod_orders = select(Order.id).where(Order.payment_mode == "COD")
+    ledger_total = _sum(db, or_(LedgerEntry.order_id.is_(None), LedgerEntry.order_id.not_in(cod_orders)))
+    # Money that reached Paystack outside completed-order earnings: standalone debt payments, and the
+    # debt portion of order payments (the order.total part is already inside the ledger once completed).
+    debt_collected = Decimal(db.scalar(select(func.coalesce(func.sum(Payment.amount), 0))
+                                     .where(Payment.purpose == PaymentPurpose.DEBT, Payment.status == PaymentStatus.SUCCESS)))
+    order_debt = Decimal(db.scalar(select(func.coalesce(func.sum(Payment.debt_amount), 0)).join(Order, Order.id == Payment.order_id)
+                                                 .where(Payment.purpose == PaymentPurpose.ORDER, Payment.status == PaymentStatus.SUCCESS,
+                                                        Order.payment_mode == "ONLINE", Order.earnings_posted_at.is_not(None),
+                                                        Order.status != S.REFUNDED)))
     recent = db.execute(select(Order.id, Order.code, func.sum(LedgerEntry.amount)).join(LedgerEntry, LedgerEntry.order_id == Order.id).where(LedgerEntry.account_id == p.id)
                         .group_by(Order.id, Order.code).order_by(Order.id.desc()).limit(20)).all()
     return {"days": days, "revenue": revenue, "owed": owed, "withdrawals": wd, "cash_with_riders": {"total": float(sum(h["cash_in_hand"] for h in holders)), "riders": holders},
-            "reconciliation": {"ledger_balance": float(ledger_total), "paid_orders_in_progress": float(in_progress), "expected_paystack_balance": float(ledger_total + in_progress),
-                               "note": "Roughly what your Paystack balance should be: completed earnings still held in the system, plus paid orders not yet completed. Refunds paid out of Paystack, and Paystack's own fees, are not included."},
+            "reconciliation": {"ledger_balance": float(ledger_total), "paid_orders_in_progress": float(in_progress),
+                               "debt_payments_received": float(debt_collected + order_debt),
+                               "expected_paystack_balance": float(ledger_total + in_progress + debt_collected + order_debt),
+                               "note": "Roughly what your Paystack balance should be: completed online-order earnings still held in the system, paid orders not yet completed, and debt repayments received. Cash-on-delivery orders are settled in cash and aren't counted. Refunds paid out of Paystack, and Paystack's own fees, are not included."},
             "recent_orders": [{"order_id": i, "code": c, "platform_net": float(n)} for i, c, n in recent]}
 
 

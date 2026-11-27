@@ -180,6 +180,45 @@ def test_pickup_orders_pay_the_vendor_only(crew, shopper, db):
     assert db.scalar(select(func.sum(LedgerEntry.amount)).where(LedgerEntry.order_id == o["id"])) == D("90.00")
 
 
+def test_a_cod_pickup_order_leaves_the_vendor_owing_the_commission(crew, shopper, db):
+    """The customer pays cash to the vendor at pickup: the vendor's wallet nets to minus the commission."""
+    shopper.post("/api/cart/items", json={"menu_item_id": crew.w.spicy.id, "quantity": 2})
+    r = shopper.post("/api/orders", json={"fulfillment_type": "PICKUP", "payment_mode": "COD"})
+    assert r.status_code == 201, r.text
+    order = r.json()
+    assert order["status"] == "PLACED" and order["payment_mode"] == "COD"
+    for st in ("CONFIRMED", "PREPARING", "READY_FOR_PICKUP"):
+        assert crew.vendor.post(f"/api/vendor/orders/{order['id']}/status", json={"status": st}).status_code == 200
+    assert ws.upcoming(db, vendor_id=crew.w.near.id)[0]["you_will_earn"] == -9.0      # they keep the cash but owe the commission
+    assert crew.vendor.post(f"/api/vendor/orders/{order['id']}/collect", json={"code": order["pickup_code"]}).status_code == 200
+    v, p = ws.vendor_account(db, crew.w.near.id), ws.platform_account(db)
+    e = entries(db, order["id"])
+    assert e[(v.id, K.COD_CASH_COLLECTED)].amount == D("-90.00")
+    b = ws.balances(db, v.id)
+    assert (b["total"], b["withdrawable"]) == (D("-9.00"), D("0.00"))                  # negative balance: nothing withdrawable
+    assert ws.balances(db, p.id)["total"] == D("9.00")
+    assert db.scalar(select(func.sum(LedgerEntry.amount)).where(LedgerEntry.order_id == order["id"])) == D("0.00")   # settled in cash
+    assert db.get(Order, order["id"]).cod_collected_at is not None
+    st = ws.statement(db, v)[0]
+    assert st["you_earn"] == -9.0 and st["state"] == "HELD"
+
+
+def test_a_cod_pickup_debt_is_repaid_by_future_earnings(crew, shopper, place_order, db):
+    """After a COD pickup leaves the vendor negative, a later online order's earnings offset the debt."""
+    shopper.post("/api/cart/items", json={"menu_item_id": crew.w.spicy.id, "quantity": 2})
+    cod = shopper.post("/api/orders", json={"fulfillment_type": "PICKUP", "payment_mode": "COD"}).json()
+    for st in ("CONFIRMED", "PREPARING", "READY_FOR_PICKUP"):
+        crew.vendor.post(f"/api/vendor/orders/{cod['id']}/status", json={"status": st})
+    crew.vendor.post(f"/api/vendor/orders/{cod['id']}/collect", json={"code": cod["pickup_code"]})
+    v = ws.vendor_account(db, crew.w.near.id)
+    assert ws.balances(db, v.id)["total"] == D("-9.00")
+    online = place_order()                                                            # GH₵95 delivery order, vendor nets 81
+    deliver(crew, online)
+    later = utcnow() + timedelta(hours=get_settings().payout_hold_hours + 1)
+    assert ws.balances(db, v.id, now=later)["total"] == D("72.00")                    # 81 earned - 9 owed
+    assert ws.balances(db, v.id, now=later)["withdrawable"] == D("72.00")
+
+
 # ---------------------------------------------------------------- who pays for coupons, for real
 @pytest.mark.parametrize("coupon_kwargs,vendor_net,platform_net,funded", [
     ({"type": CouponType.PERCENT, "value": D(10)}, "81.00", "1.00", "PLATFORM"),                          # an admin coupon: platform pays the 9.00 discount

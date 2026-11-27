@@ -48,6 +48,7 @@
   async function loadSummary() {
     cart = await App.call("/cart", { params: { address_id: selected, fulfillment } });
     if (!cart) return;
+    if (payMethod === "COD" && !(cart.cod && cart.cod.available)) payMethod = methods[0].id;   // COD isn't offered for this cart — fall back to online
     if (!cart.items.length) { root.innerHTML = App.empty("bi-bag", "Your cart is empty", ""); return; }
     renderFulfilment();
     const pick = fulfillment === "PICKUP";
